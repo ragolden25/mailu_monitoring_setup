@@ -1,0 +1,96 @@
+---
+- name: Generate SECRET_KEY (hex 64) on controller
+  set_fact:
+    pm_secret_key: "{{ lookup('password', '/dev/null chars=hex length=64') }}"
+  run_once: true
+  delegate_to: localhost
+
+- name: Generate API_TOKEN on controller
+  set_fact:
+    pm_api_token: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') }}"
+  run_once: true
+  delegate_to: localhost
+
+- name: Ensure /opt/mailu exists
+  file:
+    path: /opt/mailu
+    state: directory
+    mode: "0755"
+
+- name: Render mailu.env
+  template:
+    src: mailu.env.j2
+    dest: /opt/mailu/mailu.env
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Render docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/mailu/docker-compose.yml
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Show where files were written
+  debug:
+    msg: |
+      Written:
+        - /opt/mailu/mailu.env
+        - /opt/mailu/docker-compose.yml
+      SECRET_KEY: {{ pm_secret_key }}
+      API_TOKEN:  {{ pm_api_token }}
+
+- name: Load images from local archive directory (if provided)
+  when: pm_load_from_dir | length > 0
+  shell: |
+    set -e
+    for f in "{{ pm_load_from_dir }}"/*.tar.gz; do
+      [ -e "$f" ] || continue
+      echo "Loading $f"
+      docker load -i "$f"
+    done
+  args:
+    executable: /bin/bash
+
+- name: Pull images referenced by docker-compose.yml (if enabled)
+  when: pm_pull_images | bool
+  shell: |
+    set -e
+    cd /opt/mailu
+    docker compose -p mailu -f docker-compose.yml config --images | sort -u | while read -r img; do
+      [ -z "$img" ] && continue
+      echo "Pulling $img"
+      docker pull "$img"
+    done
+  args:
+    executable: /bin/bash
+
+- name: Save + gzip images to archive (if enabled)
+  when: pm_archive_images | bool
+  block:
+    - name: Ensure versioned archive dir exists
+      file:
+        path: "{{ pm_archive_dir }}/{{ pm_mailu_version }}"
+        state: directory
+        mode: "0755"
+
+    - name: Save images listed in compose
+      shell: |
+        set -e
+        cd /opt/mailu
+        docker compose -p mailu -f docker-compose.yml config --images | sort -u | while read -r img; do
+          [ -z "$img" ] && continue
+          safe="$(echo "$img" | sed 's#[^a-zA-Z0-9_.-]#_#g')"
+          out="{{ pm_archive_dir }}/{{ pm_mailu_version }}/${safe}.tar"
+          if [ ! -f "$out.gz" ]; then
+            echo "Saving $img to $out"
+            docker image save -o "$out" "$img"
+            gzip -f "$out"
+          else
+            echo "Archive exists for $img -> skipping"
+          fi
+        done
+      args:
+        executable: /bin/bash

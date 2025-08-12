@@ -1,0 +1,12 @@
+pm_timezone: "America/New_York"
+pm_auth_ratelimit_ip: "5/hour"
+pm_auth_ratelimit_user: "50/day"
+pm_message_size_limit: 50000000
+pm_default_relaynets: "192.168.110.0/24"
+pm_webroot_redirect: "/webmail"
+pm_web_admin: "/admin"
+pm_web_webmail: "/webmail"
+pm_web_api: "/api"
+pm_disable_statistics: "True"
+pm_dmarc_rua: "admin"
+pm_dmarc_ruf: "admin"

@@ -1,0 +1,9 @@
+galaxy_info:
+  author: you
+  description: Interactive Mailu setup + image pull/save/load
+  license: MIT
+  min_ansible_version: "2.12"
+  platforms:
+    - name: EL
+      versions: ["8", "9", "10"]
+dependencies: []

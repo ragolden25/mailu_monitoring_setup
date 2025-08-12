@@ -1,0 +1,83 @@
+---
+- name: Mailu monitoring/setup (compose + env + image archive)
+  hosts: mailu
+  become: true
+
+  vars_prompt:
+    - name: pm_domain
+      prompt: "Mail domain (e.g., pt69.ccop.dev)"
+      private: no
+      default: "pt69.ccop.dev"
+    - name: pm_hostname_fqdn
+      prompt: "Mail hostname FQDN (e.g., mailu.pt69.ccop.dev)"
+      private: no
+      default: "mailu.pt69.ccop.dev"
+    - name: pm_bind_ip
+      prompt: "Host IP to bind ports to (replace 192.168.110.170)"
+      private: no
+      default: "192.168.110.170"
+    - name: pm_subnet
+      prompt: "Docker subnet for Mailu (CIDR)"
+      private: no
+      default: "172.18.0.0/16"
+    - name: pm_mailu_version
+      prompt: "Mailu version tag"
+      private: no
+      default: "2024.06"
+    - name: pm_tls_flavor
+      prompt: "TLS flavor (cert, notls, mail, letsencrypt, mail-letsencrypt)"
+      private: no
+      default: "cert"
+    - name: pm_webmail
+      prompt: "Webmail (roundcube, snappymail, none)"
+      private: no
+      default: "roundcube"
+    - name: pm_webdav
+      prompt: "WebDAV (radicale, none)"
+      private: no
+      default: "radicale"
+    - name: pm_antivirus
+      prompt: "Antivirus (clamav, none)"
+      private: no
+      default: "clamav"
+    - name: pm_enable_api
+      prompt: "Expose API? (true/false)"
+      private: no
+      default: "true"
+    - name: pm_enable_admin
+      prompt: "Expose Admin UI? (true/false)"
+      private: no
+      default: "true"
+    - name: pm_pull_images
+      prompt: "Pull images now? (true/false)"
+      private: no
+      default: "true"
+    - name: pm_archive_images
+      prompt: "Save + gzip pulled images to an archive directory? (true/false)"
+      private: no
+      default: "true"
+    - name: pm_archive_dir
+      prompt: "Image archive directory (on the target host)"
+      private: no
+      default: "/opt/mailu/image-archive"
+    - name: pm_load_from_dir
+      prompt: "If you want to LOAD images later, provide a directory containing .tar.gz files (leave empty to skip)"
+      private: no
+      default: ""
+
+  vars:
+    pm_timezone: "America/New_York"
+    pm_auth_ratelimit_ip: "5/hour"
+    pm_auth_ratelimit_user: "50/day"
+    pm_message_size_limit: 50000000
+    pm_default_relaynets: "192.168.110.0/24"
+    pm_webroot_redirect: "/webmail"
+    pm_web_admin: "/admin"
+    pm_web_webmail: "/webmail"
+    pm_web_api: "/api"
+    pm_disable_statistics: "True"
+    pm_dmarc_rua: "admin"
+    pm_dmarc_ruf: "admin"
+
+  roles:
+    - role: mailu_setup
